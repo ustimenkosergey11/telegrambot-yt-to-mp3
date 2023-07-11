@@ -1,21 +1,22 @@
-import telebot
 import subprocess
 import os
 from pytube import YouTube
 from config import TOKEN
+from aiogram import Bot, Dispatcher, executor
 
 
-bot = telebot.TeleBot(TOKEN)
+bot = Bot(TOKEN)
+dp = Dispatcher(bot)
 
 
-@bot.message_handler(commands=['start'])
-def start(message):
+@dp.message_handler(commands=['start'])
+async def start(message):
     if message.text == '/start':
-        bot.send_message(message.chat.id, 'Привет! Отправь мне ссылку на Ютуб-видео и я конвертирую его в mp3 файл')
+        await message.answer('Привет! Отправь мне ссылку на Ютуб-видео и я конвертирую его в mp3 файл')
 
 
-@bot.message_handler(content_types=['text'])
-def convert_handler(message):
+@dp.message_handler(content_types=['text'])
+async def convert_handler(message):
     link = message.text.strip()
     yt = YouTube(link)
 
@@ -37,12 +38,12 @@ def convert_handler(message):
     try:
         subprocess.run(ffmpeg_cmd, check=True)
         with open(output_file, 'rb') as music:
-            bot.send_audio(chat_id=message.chat.id, audio=music)
+            await bot.send_audio(chat_id=message.chat.id, audio=music)
     except subprocess.CalledProcessError:
-        print('ОшибОчка')
+        await message.answer('Произошла ошибка')
 
     os.remove(input_file)
     os.remove(output_file)
 
 
-bot.polling(none_stop=True)
+executor.start_polling(dp)
